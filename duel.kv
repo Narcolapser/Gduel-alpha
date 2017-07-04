@@ -1,21 +1,14 @@
 <Duel>:
 	orientation: 'vertical'
-	BoxLayout:
-		id: player1Box
-		size_hint_y: 0.25
-		Button:
-			text: "Player 1!"
-		Controller:
+	Controls:
+		id: player1Controller
+		size_hint_y: 0.15
 	GameField:
-		id: gameBox
-		size_hint_y: 0.5
-	BoxLayout:
-		id: player2Box
-		size_hint_y: 0.25
-		Button:
-			text: "Player 2!"
-		Controller:
-			
+		id: gameField
+		size_hint_y: 0.7
+	Controls:
+		id: player2Controller
+		size_hint_y: 0.15
 
 <Sun>:
 	canvas:
@@ -26,11 +19,57 @@
 			size: 50,50
 			
 <Ship>:
+	canvas.before:
+		PushMatrix
+		Rotate:
+			angle: root.angle
+			axis: 0,0,1
+			origin: root.center
 	canvas:
 		Color:
 			rgb: self.color
 		Line:
-			points: self.center_x - 20, self.center_y - 20, self.center_x + 20, self.center_y - 20, self.center_x, self.center_y + 20, self.center_x - 20, self.center_y - 20
-			width: 5
+			points: self.center_x + 20, self.center_y, self.center_x, self.center_y + 10, self.center_x, self.center_y - 10, self.center_x + 20, self.center_y
+			width: 1
+	canvas.after:
+		PopMatrix
 
+<Torpedo>:
+	canvas:
+		Color:
+			rgb: self.color
+		Ellipse:
+			pos: root.pos
+			size: 5,5
+
+<Controls>:
+	Controller:
+		id: controller
+	GridLayout:
+		cols: 3
+		Button: 
+			text: "FIRE"
+			on_press: root.fire1()
+		Button: 
+			text: "FIRE"
+			on_press: root.fire1()
+		Button: 
+			text: "FIRE"
+			on_press: root.fire1()
+		Button: 
+			text: "X"
+		Button: 
+			text: "X"
+		Button: 
+			text: "X"
+	BoxLayout:
+		orientation: 'vertical'
+		Button: 
+			text: "Forward"
+			on_press: root.forward()
+			on_release: root.forward_release()
+		Button: 
+			text: "Reverse"
+			on_press: root.reverse()
+			on_release: root.reverse_release()
 <Controller>:

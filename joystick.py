@@ -3,6 +3,7 @@ from kivy.graphics import Ellipse
 from kivy.graphics import Color
 from kivy.lang import Builder
 from kivy.properties import NumericProperty, ListProperty
+import math
 
 class Pad(Widget):
 	diameter = NumericProperty(50)
@@ -14,16 +15,20 @@ class JoyStick (Widget):
 	perimeter_color = ListProperty([0,0,0,0.75])
 	perimeter_width = NumericProperty(6)
 	pad_color = ListProperty([1,1,1,1])
+
 	pad_x = NumericProperty(0.0)
 	pad_y = NumericProperty(0.0)
+	magnitude = NumericProperty(0.0)
+	radians = NumericProperty(0.0)
+	angle = NumericProperty(0.0)
+
+	pad_callback = ListProperty([])
 	pad_width = NumericProperty(50)
 	_reach = NumericProperty(0)
 	_perimeter_diameter = NumericProperty(0)
 	
 	def init(self,**kwargs):
 		super(Joystick,self).__init__()
-		#self.stick = Ellipse(pos=(self.center_x - 25, self.center_y - 25), size=(50,50),color=(1,1,1))
-		#self.canvas.add_widget(self.stick)
 
 	def do_layout(self):
 		if len(self.ids) > 0:
@@ -53,6 +58,7 @@ class JoyStick (Widget):
 	def move_pad(self,x,y):
 		distance = ((self.center_x - x)**2 + (self.center_y - y) ** 2)**(0.5)
 		if distance > self._reach - self.ids.pad.diameter/2:
+			self.magnitude = 1.0
 			new_distance = (self._reach - self.ids.pad.diameter/2) * 1.0 / distance
 			new_x = -(self.center_x - x) * new_distance
 			new_x = int(self.center_x + new_x)
@@ -60,25 +66,57 @@ class JoyStick (Widget):
 			new_y = int(self.center_y + new_y)
 			self.ids.pad.center_x = new_x
 			self.ids.pad.center_y = new_y
-
+			#Output values
 			self.pad_x = (x - self.center_x)*new_distance/(1.0*self._reach-self.pad_width/2.0)
 			self.pad_y = (y - self.center_y)*new_distance/(1.0*self._reach-self.pad_width/2.0)
+			
 		else:
+			self.magnitude = distance / self._reach
 			self.ids.pad.center = (x,y)
+			#Output values
 			self.pad_x = (x - self.center_x)/(1.0*self._reach-self.pad_width/2.0)
 			self.pad_y = (y - self.center_y)/(1.0*self._reach-self.pad_width/2.0)
+
+		if self.pad_x == 0 and self.pad_y == 0:
+			pass
+		elif self.pad_x == 0:
+			pass
+		elif self.pad_y == 0:
+			pass
+		else:
+			if self.pad_x > 0 and self.pad_y > 0:
+				self.radians = math.atan(1.0*self.pad_y/self.pad_x)
+			elif self.pad_x < 0 and self.pad_y > 0:
+				self.radians = math.pi + math.atan(1.0*self.pad_y/self.pad_x)
+			elif self.pad_x < 0 and self.pad_y < 0:
+				self.radians = math.pi + math.atan(1.0*self.pad_y/self.pad_x)
+			else:
+				self.radians = math.pi*2 + math.atan(1.0*self.pad_y/self.pad_x)
+			
+
 		
-	
+		self.angle = math.degrees(self.radians)
+		#print(self.angle,self.radians,self.magnitude)
+
+		for callback in self.pad_callback:
+			callback()
+
 	def on_touch_down(self, touch):
 		if self.collide_point(touch.x,touch.y):
 			self.move_pad(touch.x,touch.y)
+			touch.ud['pad'] = self
+			return True
 		return super(JoyStick, self).on_touch_down(touch)
 	
 	def on_touch_move(self,touch):
-		self.move_pad(touch.x,touch.y)
+		if 'pad' in touch.ud:
+			if touch.ud['pad'] == self:
+				self.move_pad(touch.x,touch.y)
 	
 	def on_touch_up(self,touch):
-		self.move_pad(self.center_x,self.center_y)
+		if 'pad' in touch.ud:
+			if touch.ud['pad'] == self:
+				self.move_pad(self.center_x,self.center_y)
 
 
 Builder.load_string("""
