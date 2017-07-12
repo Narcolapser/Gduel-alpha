@@ -17,7 +17,15 @@
 		Ellipse:
 			pos: self.center_x - 25,self.center_y - 25
 			size: 50,50
-			
+
+<Vessel>:
+#	canvas:
+#		Color:
+#			rgb: 1,1,1
+#		Rectangle:
+#			pos: self.pos
+#			size: self.size
+
 <Ship>:
 	canvas.before:
 		PushMatrix
@@ -29,8 +37,8 @@
 		Color:
 			rgb: self.color
 		Line:
-			points: self.center_x + 20, self.center_y, self.center_x, self.center_y + 10, self.center_x, self.center_y - 10, self.center_x + 20, self.center_y
-			width: 1
+			points: self.center_x + 10, self.center_y, self.center_x - 10, self.center_y + 10, self.center_x - 10, self.center_y - 10, self.center_x + 10, self.center_y
+			width: 3
 	canvas.after:
 		PopMatrix
 
@@ -40,7 +48,7 @@
 			rgb: self.color
 		Ellipse:
 			pos: root.pos
-			size: 5,5
+			size: 7,7
 
 <Controls>:
 	Controller:
@@ -72,4 +80,5 @@
 			text: "Reverse"
 			on_press: root.reverse()
 			on_release: root.reverse_release()
+
 <Controller>:

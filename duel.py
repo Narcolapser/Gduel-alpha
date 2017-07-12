@@ -39,7 +39,7 @@ class Controls(BoxLayout):
 class Controller(BoxLayout):
 	def __init__(self,**kwargs):
 		super(Controller,self).__init__()
-		self.js = joystick.JoyStick()
+		self.js = joystick.Joystick()
 		self.add_widget(self.js)
 
 class Sun(Widget):
@@ -53,12 +53,13 @@ class Vessel(Widget):
 	px = NumericProperty(0)
 	py = NumericProperty(0)
 	
-	def __init__(self,px,py,vx,vy):
+	def __init__(self,px,py,vx,vy,color):
 		super(Vessel,self).__init__()
 		self.px = px
 		self.py = py
 		self.vx = vx
 		self.vy = vy
+		self.color = color
 
 class Ship(Vessel):
 	name = "Ship"
@@ -82,9 +83,11 @@ class Ship(Vessel):
 	def fire1(self):
 		vx = math.cos(math.radians(self.angle)) * self.launch_multiplyer + self.vx
 		vy = math.sin(math.radians(self.angle)) * self.launch_multiplyer + self.vy
-		print(self.px,self.py,vx,vy)
-		torp = Torpedo(self.px, self.py,vx,vy)
-		print(torp.px,torp.py,torp.vx,torp.vy)
+		x = self.px + math.cos(math.radians(self.angle)) * self.launch_multiplyer * 20
+		y = self.py + math.sin(math.radians(self.angle)) * self.launch_multiplyer * 20
+		print(x,y,vx,vy)
+		torp = Torpedo(x,y,vx,vy,self.color)
+#		print(torp.px,torp.py,torp.vx,torp.vy)
 		self.parent.torpedos.append(torp)
 		self.parent.add_widget(torp)
 
@@ -102,18 +105,23 @@ class GameField (Widget):
 
 	def __init__(self,**kwargs):
 		super(GameField,self).__init__()
-		self.p1 = Ship(250,0,0,3)
+		starting_speed = 4
+		starting_distance = 250
+		self.p1 = Ship((-1*starting_distance),0,0,starting_speed,[1,0.25,0.25])
 		self.p1.name = "player 1"
-		self.p1.angle = 90
-		self.p2 = Ship(-250,0,0,-3)
+		self.p1.angle = 0
+		self.p2 = Ship(starting_distance,0,0,(-1*starting_speed),[0.25,0.25,1])
 		self.p2.name = "player 2"
-		self.p2.angle = 270
-		self.t = Torpedo(245.76643646465305, -16.973480126354787, 0.06957168430461631, 2.0468730277854554)
+		self.p2.angle = 180
 		self.sun = Sun()
 		self.add_widget(self.p1)
 		self.add_widget(self.p2)
 		self.add_widget(self.sun)
-		self.add_widget(self.t)
+#		self._do_thrust(self.p1)
+#		self._do_gravity(self.p1)
+#		self._do_thrust(self.p2)
+#		self._do_gravity(self.p2)
+
 
 	def update(self):
 		if not self.game_on:
@@ -132,28 +140,28 @@ class GameField (Widget):
 			self.game_over(self.p1,self.p2)
 			
 		#print(len(self.torpedos))
-#		for torpedo in self.torpedos:
-			#print(torpedo.x,torpedo.y)
-#			if self.p1.collide_widget(torpedo):
-#				self.remove_widget(torpedo)
-#				self.torpedos.remove(torpedo)
-#				self.game_over(self.p2,self.p1)
-#			if self.p2.collide_widget(torpedo):
-#				self.remove_widget(torpedo)
-#				self.torpedos.remove(torpedo)
-#				self.game_over(self.p1,self.p2)
+		for torpedo in self.torpedos:
+#			print(torpedo.x,torpedo.y)
+			if self.p1.collide_widget(torpedo):
+				self.remove_widget(torpedo)
+				self.torpedos.remove(torpedo)
+				self.game_over(self.p2,self.p1)
+			if self.p2.collide_widget(torpedo):
+				self.remove_widget(torpedo)
+				self.torpedos.remove(torpedo)
+				self.game_over(self.p1,self.p2)
 	
 	def game_over(self,winner,looser):
 		self.game_on = False
-		self.remove_widget(looser)
+#		self.remove_widget(looser)
 #		self.clear_widgets()
 #		App.get_running_app().game_over(winner)
 
 	def _do_gravity(self,obj):
-		dist_x = self.sun.x - obj.x
-		dist_y = self.sun.y - obj.y
+		dist_x = self.sun.center_x - obj.center_x
+		dist_y = self.sun.center_y - obj.center_y
 		distance = ((dist_x)**2 + (dist_y)**2)**(0.5)
-		m = 10.0
+		m = 20.0
 		acc = m/distance
 		ax = acc*(dist_x/distance)
 		ay = acc*(dist_y/distance)
@@ -172,9 +180,20 @@ class GameField (Widget):
 
 	def do_layout(self):
 		self.sun.center = self.center
-		self.p1.center = (self.center_x + self.p1.px, self.center_y + self.p1.py)
-		self.p2.center = (self.center_x + self.p2.px, self.center_y + self.p2.py)
-		
+		for child in self.children:
+			if isinstance(child,Sun):
+				child.width = 50
+				child.height = 50
+				continue
+			elif isinstance(child,Ship):
+				child.width = 20
+				child.height = 20
+			else:
+				child.width = 7
+				child.height = 7
+			child.center = (self.center_x + child.px, self.center_y + child.py)
+#		self.p1.center = (self.center_x + self.p1.px, self.center_y + self.p1.py)
+#		self.p2.center = (self.center_x + self.p2.px, self.center_y + self.p2.py)
 
 	def on_size(self, *args):
 		self.do_layout()
