@@ -1,14 +1,17 @@
 <Duel>:
-	orientation: 'vertical'
-	Controls:
-		id: player1Controller
-		size_hint_y: 0.15
 	GameField:
 		id: gameField
 		size_hint_y: 0.7
-	Controls:
+		center: root.center
+	UpsideDownControlls:
+		id: player1Controller
+		size_hint_y: 0.15
+		top: root.top
+		y: root.y
+	RightsideUpControlls:
 		id: player2Controller
 		size_hint_y: 0.15
+		pos: root.pos
 
 <Sun>:
 	canvas:
@@ -50,7 +53,54 @@
 			pos: root.pos
 			size: 7,7
 
+<UpsidedownButton@Button>:
+	canvas.before:
+		PushMatrix
+		Rotate:
+			angle: 180
+			axis: 0,0,1
+			origin: root.center
+	canvas.after:
+		PopMatrix
+
 <Controls>:
+
+<UpsideDownControlls@Controls>:
+	BoxLayout:
+		orientation: 'vertical'
+		UpsidedownButton: 
+			text: "Reverse"
+			on_press: root.reverse()
+			on_release: root.reverse_release()
+		UpsidedownButton: 
+			text: "Forward"
+			on_press: root.forward()
+			on_release: root.forward_release()
+	GridLayout:
+		cols: 3
+		UpsidedownButton: 
+			text: "X"
+			on_press: root.destroy1()
+		UpsidedownButton: 
+			text: "X"
+			on_press: root.destroy2()
+		UpsidedownButton: 
+			text: "X"
+			on_press: root.destroy3()
+		UpsidedownButton: 
+			text: "FIRE"
+			on_press: root.fire1()
+		UpsidedownButton: 
+			text: "FIRE"
+			on_press: root.fire2()
+		UpsidedownButton: 
+			text: "FIRE"
+			on_press: root.fire3()
+	Controller:
+		id: controller
+
+
+<RightsideUpControlls@Controls>:
 	Controller:
 		id: controller
 	GridLayout:
@@ -60,16 +110,19 @@
 			on_press: root.fire1()
 		Button: 
 			text: "FIRE"
-			on_press: root.fire1()
+			on_press: root.fire2()
 		Button: 
 			text: "FIRE"
-			on_press: root.fire1()
+			on_press: root.fire3()
 		Button: 
 			text: "X"
+			on_press: root.destroy1()
 		Button: 
 			text: "X"
+			on_press: root.destroy2()
 		Button: 
 			text: "X"
+			on_press: root.destroy3()
 	BoxLayout:
 		orientation: 'vertical'
 		Button: 

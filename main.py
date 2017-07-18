@@ -1,11 +1,21 @@
 from kivy.uix.widget import Widget
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.popup import Popup
+from kivy.uix.button import Button
 from kivy.app import App
 from kivy.properties import NumericProperty, ListProperty
 from kivy.clock import Clock
 import math
 import joystick
+
+import kivy
+kivy.require('1.9.0')
+
+from kivy.config import Config
+Config.set('graphics', 'width', '768')
+Config.set('graphics', 'height', '1024')
 
 class Controls(BoxLayout):
 	
@@ -35,6 +45,21 @@ class Controls(BoxLayout):
 	
 	def fire1(self):
 		self.ship.fire1()
+	
+	def destroy1(self):
+		self.ship.destroy1()
+	
+	def fire2(self):
+		self.ship.fire2()
+	
+	def destroy2(self):
+		self.ship.destroy2()
+	
+	def fire3(self):
+		self.ship.fire3()
+	
+	def destroy3(self):
+		self.ship.destroy3()
 
 class Controller(BoxLayout):
 	def __init__(self,**kwargs):
@@ -66,7 +91,10 @@ class Ship(Vessel):
 	thrust = False
 	brake = False
 	thrust_multiplyer = 0.03
-	launch_multiplyer = 1.0
+	launch_multiplyer = 5.0
+	torp1 = None
+	torp2 = None
+	torp3 = None
 	
 	def do_thrust(self):
 		ax = math.cos(math.radians(self.angle)) * self.thrust_multiplyer
@@ -80,23 +108,66 @@ class Ship(Vessel):
 		self.vx += ax
 		self.vy += ay
 	
-	def fire1(self):
+	def fire(self):
 		vx = math.cos(math.radians(self.angle)) * self.launch_multiplyer + self.vx
 		vy = math.sin(math.radians(self.angle)) * self.launch_multiplyer + self.vy
-		x = self.px + math.cos(math.radians(self.angle)) * self.launch_multiplyer * 20
-		y = self.py + math.sin(math.radians(self.angle)) * self.launch_multiplyer * 20
+		x = self.px + math.cos(math.radians(self.angle)) * self.launch_multiplyer * 5
+		y = self.py + math.sin(math.radians(self.angle)) * self.launch_multiplyer * 5
 		print(x,y,vx,vy)
 		torp = Torpedo(x,y,vx,vy,self.color)
 #		print(torp.px,torp.py,torp.vx,torp.vy)
 		self.parent.torpedos.append(torp)
 		self.parent.add_widget(torp)
+		return torp
+	
+	def destroy_torp(self,torp):
+		try:
+			self.parent.remove_widget(torp)
+		except ValueError:
+			pass
+		try:
+			self.parent.torpedos.remove(torp)
+		except ValueError:
+			pass
+	
+	def fire1(self):
+		print("Fire 1: ",self.torp1)
+		if self.torp1:
+			return
+		self.torp1 = self.fire()
+		print(		self.torp1)
+		self.torp1.destroyed = self.destroy1
+	
+	def destroy1(self):
+		self.destroy_torp(self.torp1)
+		self.torp1 = None
+	
+	def fire2(self):
+		print("Fire 2: ",self.torp2)
+		if self.torp2:
+			return
+		self.torp2 = self.fire()
+		print(		self.torp2)
+		self.torp2.destroyed = self.destroy2
+	
+	def destroy2(self):
+		self.destroy_torp(self.torp2)
+		self.torp2 = None
+	
+	def fire3(self):
+		print("Fire 3: ",self.torp3)
+		if self.torp3:
+			return
+		self.torp3 = self.fire()
+		print(		self.torp3)
+		self.torp3.destroyed = self.destroy3
+	
+	def destroy3(self):
+		self.destroy_torp(self.torp3)
+		self.torp3 = None
 
 class Torpedo(Vessel):
 	pass
-#	def __init__(self,px,py,vx,vy):
-#		super(Torpedo,self).__init__(px,py,vx,vy)
-#		self.x = px
-#		self.y = py
 
 class GameField (Widget):
 
@@ -150,12 +221,15 @@ class GameField (Widget):
 				self.remove_widget(torpedo)
 				self.torpedos.remove(torpedo)
 				self.game_over(self.p1,self.p2)
+			if self.sun.collide_widget(torpedo):
+				self.remove_widget(torpedo)
+				self.torpedos.remove(torpedo)
 	
 	def game_over(self,winner,looser):
 		self.game_on = False
 #		self.remove_widget(looser)
 #		self.clear_widgets()
-#		App.get_running_app().game_over(winner)
+		App.get_running_app().game_over(winner)
 
 	def _do_gravity(self,obj):
 		dist_x = self.sun.center_x - obj.center_x
@@ -179,6 +253,7 @@ class GameField (Widget):
 			obj.do_brake()
 
 	def do_layout(self):
+		print(self.center)
 		self.sun.center = self.center
 		for child in self.children:
 			if isinstance(child,Sun):
@@ -209,29 +284,60 @@ class GameField (Widget):
 		super(GameField, self).remove_widget(widget)
 		self.do_layout()
 
-class Duel (BoxLayout):
+class Duel (FloatLayout):
 	def update(self,val):
 		self.ids.gameField.update()
+		#self.do_layout(None)
 		
 	def do_layout(self,val):
 		super(Duel,self).do_layout(val)
+		self.ids.gameField.center = self.center
 		if self.ids.player1Controller:
+			self.ids.player1Controller.top = self.top
 			self.ids.player1Controller.set_ship(self.ids.gameField.p1)
 		if self.ids.player2Controller:
 			self.ids.player2Controller.set_ship(self.ids.gameField.p2)
 
+class GameHost(BoxLayout):
+	popup = None
+	def __init__(self,**kwargs):
+		super(GameHost,self).__init__(**kwargs)
+		self.game = Duel()
+		self.add_widget(self.game)
+	
+	def reset(self,val):
+		print("resetting",val)
+		self.clear_widgets()
+		self.game = Duel()
+		self.add_widget(self.game)
+		if self.popup:
+			self.popup.dismiss()
+	
+	def do_layout(self,val):
+		super(GameHost,self).do_layout(val)
+	
+	def update(self,val):
+#		print(dir(self))
+		if self.game:
+			self.game.update(val)
+
 class DuelApp (App):
 	def build(self):
-		game = Duel()
+		game = GameHost()
 		self.game = game
 		Clock.schedule_interval(game.update,1/60.0)
 		return game
 	
 	def game_over(self,winner):
-		self.game.clear_widgets()
-		l = Label(text="Congratulations {0}!".format(winner.name))
-		l.center = self.game.center
-		self.game.add_widget(l)
+#		self.clear_widgets()
+#		l = Label(text="Congratulations {0}!".format(winner.name))
+#		l.center = self.game.center
+#		self.game.add_widget(l)
+		content = Button(text='Congratulations {0}!\n\nPlay again!'.format(winner.name))
+		popup = Popup(title='winner: '+winner.name,content=content, auto_dismiss=False)
+		self.game.popup = popup
+		content.bind(on_press=self.game.reset)
+		popup.open()
 	
 	def on_pause(self):
 		return True
