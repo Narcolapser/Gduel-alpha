@@ -5,7 +5,7 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
 from kivy.uix.button import Button
 from kivy.app import App
-from kivy.properties import NumericProperty, ListProperty
+from kivy.properties import NumericProperty, ListProperty, StringProperty
 from kivy.clock import Clock
 import math
 import joystick
@@ -18,48 +18,37 @@ Config.set('graphics', 'width', '768')
 Config.set('graphics', 'height', '1024')
 
 class Controls(BoxLayout):
+	remaining_text = StringProperty("3")
 	
 	def forward(self):
-		print("Forward {0}!".format(self.ship.name))
 		self.ship.thrust = True
 
 	def forward_release(self):
-		print("Forward_release {0}!".format(self.ship.name))
 		self.ship.thrust = False
-		
-	def reverse_release(self):
-		print("Reverse {0}!".format(self.ship.name))
 
 	def reverse(self):
-		print("Reverse_release {0}!".format(self.ship.name))
-	
+		self.ship.brake = True
+
+	def reverse_release(self):
+		self.ship.brake = False
+
 	def set_ship(self,ship):
 		self.ship = ship
-#		self.ids.controller.bind(self.ids.controller.js.pad_move,self.turn)
-#		self.ids.controller.js.bind(on_pad_move=self.turn)
 		self.ids.controller.js.pad_callback.append(self.turn)
-	
+
 	def turn(self):
-#		print("Turning ship of {0}.".format(self.ship.name))
 		self.ship.angle = self.ids.controller.js.angle
-	
-	def fire1(self):
-		self.ship.fire1()
-	
-	def destroy1(self):
-		self.ship.destroy1()
-	
-	def fire2(self):
-		self.ship.fire2()
-	
-	def destroy2(self):
-		self.ship.destroy2()
-	
-	def fire3(self):
-		self.ship.fire3()
-	
-	def destroy3(self):
-		self.ship.destroy3()
+
+	def fire(self):
+		self.ship.fire_torpedo()
+		self.update_remaining()
+
+	def destroy(self):
+		self.ship.destroy_all()
+		self.update_remaining()
+		
+	def update_remaining(self):
+		self.remaining_text = str(self.ship.torpedo_limit - len(self.ship.torpedos))
 
 class Controller(BoxLayout):
 	def __init__(self,**kwargs):
@@ -77,6 +66,10 @@ class Vessel(Widget):
 	vy = NumericProperty(0)
 	px = NumericProperty(0)
 	py = NumericProperty(0)
+	trail = []
+	next_dot = 0
+	dot_spacing = 2
+	dot_limit = 120
 	
 	def __init__(self,px,py,vx,vy,color):
 		super(Vessel,self).__init__()
@@ -85,6 +78,27 @@ class Vessel(Widget):
 		self.vx = vx
 		self.vy = vy
 		self.color = color
+	
+	def do_trail(self):
+		if self.next_dot < self.dot_spacing:
+			self.next_dot += 1
+			return
+		self.next_dot = 0
+		if len(self.trail) > self.dot_limit:
+			self.parent.remove_widget(self.trail.pop(0))
+		dot = TrailDot()
+		dot.x = self.center_x
+		dot.y = self.center_y
+		dot.color = self.color
+		self.trail.append(dot)
+		self.parent.add_widget(dot)
+
+class TrailDot(Widget):
+	color = ListProperty([1,1,1])
+	pass
+
+class Torpedo(Vessel):
+	pass
 
 class Ship(Vessel):
 	name = "Ship"
@@ -92,9 +106,8 @@ class Ship(Vessel):
 	brake = False
 	thrust_multiplyer = 0.03
 	launch_multiplyer = 5.0
-	torp1 = None
-	torp2 = None
-	torp3 = None
+	torpedos = []
+	torpedo_limit = 3
 	
 	def do_thrust(self):
 		ax = math.cos(math.radians(self.angle)) * self.thrust_multiplyer
@@ -113,9 +126,7 @@ class Ship(Vessel):
 		vy = math.sin(math.radians(self.angle)) * self.launch_multiplyer + self.vy
 		x = self.px + math.cos(math.radians(self.angle)) * self.launch_multiplyer * 5
 		y = self.py + math.sin(math.radians(self.angle)) * self.launch_multiplyer * 5
-		print(x,y,vx,vy)
 		torp = Torpedo(x,y,vx,vy,self.color)
-#		print(torp.px,torp.py,torp.vx,torp.vy)
 		self.parent.torpedos.append(torp)
 		self.parent.add_widget(torp)
 		return torp
@@ -130,44 +141,24 @@ class Ship(Vessel):
 		except ValueError:
 			pass
 	
-	def fire1(self):
-		print("Fire 1: ",self.torp1)
-		if self.torp1:
+	def fire_torpedo(self):
+		if len(self.torpedos) >= self.torpedo_limit:
 			return
-		self.torp1 = self.fire()
-		print(		self.torp1)
-		self.torp1.destroyed = self.destroy1
+		torp = self.fire()
+		self.torpedos.append(torp)
 	
-	def destroy1(self):
-		self.destroy_torp(self.torp1)
-		self.torp1 = None
+	def destroyed_torp(self,torp):
+		try:
+			index = self.torpedos.index(torp)
+			self.torpedos.pop(index)
+			self.destroy_torp(torp)
+		except:
+			pass
 	
-	def fire2(self):
-		print("Fire 2: ",self.torp2)
-		if self.torp2:
-			return
-		self.torp2 = self.fire()
-		print(		self.torp2)
-		self.torp2.destroyed = self.destroy2
-	
-	def destroy2(self):
-		self.destroy_torp(self.torp2)
-		self.torp2 = None
-	
-	def fire3(self):
-		print("Fire 3: ",self.torp3)
-		if self.torp3:
-			return
-		self.torp3 = self.fire()
-		print(		self.torp3)
-		self.torp3.destroyed = self.destroy3
-	
-	def destroy3(self):
-		self.destroy_torp(self.torp3)
-		self.torp3 = None
-
-class Torpedo(Vessel):
-	pass
+	def destroy_all(self):
+		for torp in self.torpedos:
+			self.destroy_torp(torp)
+		self.torpedos = []
 
 class GameField (Widget):
 
@@ -188,10 +179,6 @@ class GameField (Widget):
 		self.add_widget(self.p1)
 		self.add_widget(self.p2)
 		self.add_widget(self.sun)
-#		self._do_thrust(self.p1)
-#		self._do_gravity(self.p1)
-#		self._do_thrust(self.p2)
-#		self._do_gravity(self.p2)
 
 
 	def update(self):
@@ -199,10 +186,13 @@ class GameField (Widget):
 			return False
 		self._do_thrust(self.p1)
 		self._do_gravity(self.p1)
+		self.p1.do_trail()
 		self._do_thrust(self.p2)
 		self._do_gravity(self.p2)
+		self.p2.do_trail()
 		for torpedo in self.torpedos:
 			self._do_gravity(torpedo)
+			torpedo.do_trail()
 		
 		#check for collisions:
 		if self.p1.collide_widget(self.sun):
@@ -210,9 +200,7 @@ class GameField (Widget):
 		if self.p2.collide_widget(self.sun):
 			self.game_over(self.p1,self.p2)
 			
-		#print(len(self.torpedos))
 		for torpedo in self.torpedos:
-#			print(torpedo.x,torpedo.y)
 			if self.p1.collide_widget(torpedo):
 				self.remove_widget(torpedo)
 				self.torpedos.remove(torpedo)
@@ -224,11 +212,21 @@ class GameField (Widget):
 			if self.sun.collide_widget(torpedo):
 				self.remove_widget(torpedo)
 				self.torpedos.remove(torpedo)
+				self.p1.destroyed_torp(torpedo)
+				self.p2.destroyed_torp(torpedo)
+			for col_torp in self.torpedos:
+				if col_torp.collide_widget(torpedo) and torpedo != col_torp:
+					self.remove_widget(torpedo)
+					self.torpedos.remove(torpedo)
+					self.remove_widget(col_torp)
+					self.torpedos.remove(col_torp)
+					self.p1.destroyed_torp(torpedo)
+					self.p2.destroyed_torp(torpedo)
+					self.p1.destroyed_torp(col_torp)
+					self.p2.destroyed_torp(col_torp)
 	
 	def game_over(self,winner,looser):
 		self.game_on = False
-#		self.remove_widget(looser)
-#		self.clear_widgets()
 		App.get_running_app().game_over(winner)
 
 	def _do_gravity(self,obj):
@@ -253,12 +251,13 @@ class GameField (Widget):
 			obj.do_brake()
 
 	def do_layout(self):
-		print(self.center)
 		self.sun.center = self.center
 		for child in self.children:
 			if isinstance(child,Sun):
 				child.width = 50
 				child.height = 50
+				continue
+			elif isinstance(child,TrailDot):
 				continue
 			elif isinstance(child,Ship):
 				child.width = 20
@@ -267,8 +266,6 @@ class GameField (Widget):
 				child.width = 7
 				child.height = 7
 			child.center = (self.center_x + child.px, self.center_y + child.py)
-#		self.p1.center = (self.center_x + self.p1.px, self.center_y + self.p1.py)
-#		self.p2.center = (self.center_x + self.p2.px, self.center_y + self.p2.py)
 
 	def on_size(self, *args):
 		self.do_layout()
@@ -287,7 +284,6 @@ class GameField (Widget):
 class Duel (FloatLayout):
 	def update(self,val):
 		self.ids.gameField.update()
-		#self.do_layout(None)
 		
 	def do_layout(self,val):
 		super(Duel,self).do_layout(val)
@@ -295,8 +291,16 @@ class Duel (FloatLayout):
 		if self.ids.player1Controller:
 			self.ids.player1Controller.top = self.top
 			self.ids.player1Controller.set_ship(self.ids.gameField.p1)
+			try:
+				self.ids.player1Controller.ids.controller.js.pad_color = self.ids.player1Controller.color
+			except:
+				pass
 		if self.ids.player2Controller:
 			self.ids.player2Controller.set_ship(self.ids.gameField.p2)
+			try:
+				self.ids.player2Controller.ids.controller.js.pad_color = self.ids.player2Controller.color
+			except:
+				pass
 
 class GameHost(BoxLayout):
 	popup = None
@@ -306,7 +310,6 @@ class GameHost(BoxLayout):
 		self.add_widget(self.game)
 	
 	def reset(self,val):
-		print("resetting",val)
 		self.clear_widgets()
 		self.game = Duel()
 		self.add_widget(self.game)
@@ -317,7 +320,6 @@ class GameHost(BoxLayout):
 		super(GameHost,self).do_layout(val)
 	
 	def update(self,val):
-#		print(dir(self))
 		if self.game:
 			self.game.update(val)
 
@@ -329,11 +331,14 @@ class DuelApp (App):
 		return game
 	
 	def game_over(self,winner):
-#		self.clear_widgets()
-#		l = Label(text="Congratulations {0}!".format(winner.name))
-#		l.center = self.game.center
-#		self.game.add_widget(l)
-		content = Button(text='Congratulations {0}!\n\nPlay again!'.format(winner.name))
+		if winner.name == 'player 1':
+			winner_color = "Red"
+		elif winner.name == 'player 2':
+			winner_color = "Blue"
+		else:
+			winner_color = "you tied!"
+			print(winner.name)
+		content = Button(text='Congratulations {0}!\n\nPlay again!'.format(winner_color))
 		popup = Popup(title='winner: '+winner.name,content=content, auto_dismiss=False)
 		self.game.popup = popup
 		content.bind(on_press=self.game.reset)

@@ -8,10 +8,12 @@
 		size_hint_y: 0.15
 		top: root.top
 		y: root.y
+		color: [1,0,0,1]
 	RightsideUpControlls:
 		id: player2Controller
 		size_hint_y: 0.15
 		pos: root.pos
+		color: [0,0,1,1]
 
 <Sun>:
 	canvas:
@@ -28,6 +30,15 @@
 #		Rectangle:
 #			pos: self.pos
 #			size: self.size
+
+<TrailDot>:
+	canvas:
+		Color:
+			rgb: self.color
+		Ellipse:
+			pos: root.pos
+			size: 3,3
+
 
 <Ship>:
 	canvas.before:
@@ -63,6 +74,16 @@
 	canvas.after:
 		PopMatrix
 
+<UpsidedownLabel@Label>:
+	canvas.before:
+		PushMatrix
+		Rotate:
+			angle: 180
+			axis: 0,0,1
+			origin: root.center
+	canvas.after:
+		PopMatrix
+
 <Controls>:
 
 <UpsideDownControlls@Controls>:
@@ -77,25 +98,16 @@
 			on_press: root.forward()
 			on_release: root.forward_release()
 	GridLayout:
-		cols: 3
-		UpsidedownButton: 
-			text: "X"
-			on_press: root.destroy1()
-		UpsidedownButton: 
-			text: "X"
-			on_press: root.destroy2()
-		UpsidedownButton: 
-			text: "X"
-			on_press: root.destroy3()
+		cols: 1
+		BoxLayout:
+			UpsidedownButton: 
+				text: "Recall All"
+				on_press: root.destroy()
+			UpsidedownLabel:
+				text: root.remaining_text
 		UpsidedownButton: 
 			text: "FIRE"
-			on_press: root.fire1()
-		UpsidedownButton: 
-			text: "FIRE"
-			on_press: root.fire2()
-		UpsidedownButton: 
-			text: "FIRE"
-			on_press: root.fire3()
+			on_press: root.fire()
 	Controller:
 		id: controller
 
@@ -104,25 +116,16 @@
 	Controller:
 		id: controller
 	GridLayout:
-		cols: 3
+		cols: 1
 		Button: 
 			text: "FIRE"
-			on_press: root.fire1()
-		Button: 
-			text: "FIRE"
-			on_press: root.fire2()
-		Button: 
-			text: "FIRE"
-			on_press: root.fire3()
-		Button: 
-			text: "X"
-			on_press: root.destroy1()
-		Button: 
-			text: "X"
-			on_press: root.destroy2()
-		Button: 
-			text: "X"
-			on_press: root.destroy3()
+			on_press: root.fire()
+		BoxLayout:
+			Button: 
+				text: "Recall All"
+				on_press: root.destroy()
+			Label:
+				text: root.remaining_text
 	BoxLayout:
 		orientation: 'vertical'
 		Button: 
