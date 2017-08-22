@@ -1,3 +1,60 @@
+<MainMenuScreen>:
+	BoxLayout:
+		orientation: 'vertical'
+		BoxLayout:
+			orientation: 'vertical'
+			Label:
+				text: "Start a new game"
+			Label:
+				text: "A game of shooting friends with a sun between."
+		BoxLayout:
+			orientation: 'vertical'
+			Button:
+				text: "New game"
+				on_release: root.new_game()
+			Button:
+				text: "Game Rules"
+				on_release: root.game_rules()
+			Button:
+				text: "Ship select"
+
+<GameScreen>:
+
+<RulesScreen>:
+	BoxLayout:
+		orientation: 'vertical'
+		BoxLayout:
+			Label:
+				text: "Torpedo count"
+			TextInput:
+				text: str(root.torpedo_count)
+			Button:
+				text: "save"
+				on_release: root.update_torpedo()
+		Button:
+			text: "Return"
+			on_release: root.menu()
+
+<VictoryScreen>:
+	BoxLayout:
+		orientation: 'vertical'
+		UpsidedownButton:
+			text: "Menu"
+			on_release: root.menu()
+		UpsidedownButton:
+			text: "play again?"
+			on_release: root.again()
+		UpsidedownLabel:
+			text: "Winner is: " + root.winner_color
+		Label:
+			text: "Winner is: " + root.winner_color
+		Button:
+			text: "play again?"
+			on_release: root.again()
+		Button:
+			text: "Menu"
+			on_release: root.menu()
+
 <Duel>:
 	GameField:
 		id: gameField
