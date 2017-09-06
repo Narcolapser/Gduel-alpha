@@ -16,6 +16,7 @@ kivy.require('1.9.0')
 
 class Controls(BoxLayout):
 	remaining_text = StringProperty("3")
+	torpedo_limit = NumericProperty(3)
 	
 	def forward(self):
 		self.ship.thrust = True
@@ -31,6 +32,9 @@ class Controls(BoxLayout):
 
 	def set_ship(self,ship):
 		self.ship = ship
+		self.ship.destroy_all()
+		self.ship.controller = self
+		self.ship.color = self.color
 		self.ids.controller.js.pad_callback.append(self.turn)
 
 	def turn(self):
@@ -45,7 +49,12 @@ class Controls(BoxLayout):
 		self.update_remaining()
 		
 	def update_remaining(self):
+		self.ship.set_torpedo_limit(self.torpedo_limit)
 		self.remaining_text = str(self.ship.torpedo_limit - len(self.ship.torpedos))
+	
+	def set_torpedo_limit(self,val):
+		self.remaining_text = str(val)
+		self.torpedo_limit = val
 
 class Controller(BoxLayout):
 	def __init__(self,**kwargs):
@@ -195,6 +204,10 @@ class Duel (FloatLayout):
 			except:
 				pass
 
+	def set_torpedo_limit(self,val):
+		self.ids.player1Controller.set_torpedo_limit(val)
+		self.ids.player2Controller.set_torpedo_limit(val)
+
 class GameHost(BoxLayout):
 	popup = None
 	def __init__(self,**kwargs):
@@ -216,3 +229,5 @@ class GameHost(BoxLayout):
 		if self.game:
 			self.game.update(val)
 
+	def set_torpedo_limit(self,val):
+		self.game.set_torpedo_limit(val)

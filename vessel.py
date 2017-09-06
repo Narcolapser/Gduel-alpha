@@ -7,6 +7,7 @@ from kivy.uix.button import Button
 from kivy.app import App
 from kivy.properties import NumericProperty, ListProperty, StringProperty
 from kivy.clock import Clock
+from kivy.config import Config
 import math
 import joystick
 
@@ -65,7 +66,8 @@ class Ship(Vessel):
 	thrust_multiplyer = 0.03
 	launch_multiplyer = 5.0
 	torpedos = []
-	torpedo_limit = 3
+	torpedo_limit = NumericProperty(3)
+	controller = None
 	
 	def do_thrust(self):
 		ax = math.cos(math.radians(self.angle)) * self.thrust_multiplyer
@@ -112,9 +114,14 @@ class Ship(Vessel):
 			self.destroy_torp(torp)
 		except:
 			pass
+		if self.controller:
+			self.controller.update_remaining()
 	
 	def destroy_all(self):
 		for torp in self.torpedos:
 			self.destroy_torp(torp)
 		self.torpedos = []
+	
+	def set_torpedo_limit(self,val):
+		self.torpedo_limit = val
 

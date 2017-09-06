@@ -5,11 +5,14 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.settings import SettingsWithSidebar
 from kivy.app import App
 from kivy.properties import NumericProperty, ListProperty, StringProperty
 from kivy.clock import Clock
 import math
 import joystick
+import json
+from os.path import join
 from vessel import *
 from game import *
 
@@ -20,16 +23,13 @@ from kivy.config import Config
 Config.set('graphics', 'width', '768')
 Config.set('graphics', 'height', '1024')
 
-Config.read("duel.ini")
-# set config
-# Config.write()
-
 class GameScreen(Screen):
 	def run(self):
-		print("RUN!")
 		game = GameHost()
 		self.game = game
 		self.add_widget(self.game)
+		app = App.get_running_app()
+		self.game.set_torpedo_limit(app.config.getint('Duel','torpedo_count'))
 		Clock.schedule_interval(game.update,1/60.0)
 
 class VictoryScreen(Screen):
@@ -37,8 +37,14 @@ class VictoryScreen(Screen):
 		self.winner = winner
 		if winner.name == 'player 1':
 			self.winner_color = "Red"
+			app = App.get_running_app()
+			score = int(app.red_score) +1
+			app.red_score = str(score)
 		elif winner.name == 'player 2':
 			self.winner_color = "Blue"
+			app = App.get_running_app()
+			score = int(app.blue_score) +1
+			app.blue_score = str(score)
 		else:
 			self.winner_color = "you tied!"
 		super(VictoryScreen,self).__init__(**kwargs)
@@ -93,10 +99,30 @@ class DuelScreenManager(ScreenManager):
 		self.add_widget(victory)
 		self.current = 'victory'
 		self.remove_widget(gs)
-		
+
+settings_json = json.dumps([
+	{'type':'numeric',
+	'title':'Torpedo Limit',
+	'section': 'Duel',
+	'key':'torpedo_count'}
+	])
 
 class DuelApp (App):
+	blue_score = StringProperty("0")
+	red_score = StringProperty("0")
 	def build(self):
+		data_dir = getattr(self, 'user_data_dir')
+		self.data_dir = data_dir
+		#self.build_config(self.config)
+		print("torpedo count set",join(data_dir,"duel.ini"))
+		self.settings_cls = SettingsWithSidebar
+		try:
+			val = self.config.getint('Duel','torpedo_count')
+			print("Getting torpedo count: ",val)
+		except:
+			self.config.write()
+			print("error Getting torpedo count: ")
+		self.use_kivy_settings = False
 		self.sm = DuelScreenManager()
 		self.main_menu_screen = MainMenuScreen(name='main_menu')
 		self.sm.add_widget(self.main_menu_screen)
@@ -113,10 +139,15 @@ class DuelApp (App):
 		pass
 
 	def build_config(self, config):
-		config.setdefaults('duel', {
+		data_dir = getattr(self, 'user_data_dir')
+		config.read(join(data_dir,"duel.ini"))
+		config.setdefaults('Duel', {
 			'torpedo_count': 3})
-
-
+	
+	def build_settings(self, settings):
+		settings.add_json_panel('Space Duel Rules',
+								self.config,
+								data=settings_json)
 
 if __name__ == "__main__":
 	app = DuelApp()
