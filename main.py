@@ -29,6 +29,7 @@ class GameScreen(Screen):
 		self.game = game
 		self.add_widget(self.game)
 		app = App.get_running_app()
+		print("Name: " + app.get_application_name() + " Icon: " + app.get_application_icon())
 		self.game.set_torpedo_limit(app.config.getint('Duel','torpedo_count'))
 		Clock.schedule_interval(game.update,1/60.0)
 
@@ -110,7 +111,9 @@ settings_json = json.dumps([
 class DuelApp (App):
 	blue_score = StringProperty("0")
 	red_score = StringProperty("0")
+	
 	def build(self):
+		self.icon = 'assets/duel_512.png'
 		data_dir = getattr(self, 'user_data_dir')
 		self.data_dir = data_dir
 		#self.build_config(self.config)

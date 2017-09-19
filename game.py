@@ -65,6 +65,7 @@ class Controller(BoxLayout):
 class GameField (Widget):
 
 	torpedos = ListProperty([])
+	debris = ListProperty([])
 	game_on = True
 
 	def __init__(self,**kwargs):
@@ -81,6 +82,9 @@ class GameField (Widget):
 		self.add_widget(self.p1)
 		self.add_widget(self.p2)
 		self.add_widget(self.sun)
+		self.end_delay = 180 #replace this with an option
+		self.end = 180
+		self.ending = False
 
 
 	def update(self):
@@ -95,22 +99,34 @@ class GameField (Widget):
 		for torpedo in self.torpedos:
 			self._do_gravity(torpedo)
 			torpedo.do_trail()
+		for d in self.debris:
+			self._do_gravity(d)
 		
 		#check for collisions:
 		if self.p1.collide_widget(self.sun):
-			self.game_over(self.p2,self.p1)
+#			self.game_over(self.p2,self.p1)
+			self.ending = True
+			self.winner = self.p2
+			self.looser = self.p1
 		if self.p2.collide_widget(self.sun):
-			self.game_over(self.p1,self.p2)
+#			self.game_over(self.p1,self.p2)
+			self.ending = True
+			self.winner = self.p1
+			self.looser = self.p2
 			
 		for torpedo in self.torpedos:
 			if self.p1.collide_widget(torpedo):
 				self.remove_widget(torpedo)
 				self.torpedos.remove(torpedo)
-				self.game_over(self.p2,self.p1)
+				self.ending = True
+				self.winner = self.p2
+				self.looser = self.p1
 			if self.p2.collide_widget(torpedo):
 				self.remove_widget(torpedo)
 				self.torpedos.remove(torpedo)
-				self.game_over(self.p1,self.p2)
+				self.ending = True
+				self.winner = self.p1
+				self.looser = self.p2
 			if self.sun.collide_widget(torpedo):
 				self.remove_widget(torpedo)
 				self.torpedos.remove(torpedo)
@@ -126,12 +142,24 @@ class GameField (Widget):
 					self.p2.destroyed_torp(torpedo)
 					self.p1.destroyed_torp(col_torp)
 					self.p2.destroyed_torp(col_torp)
+
+		if self.ending:
+			if self.end_delay == self.end:
+				self.looser.explode()
+			if self.end <= 0:
+				self.game_over(self.winner,self.looser)
+				print("Ending game")
+			else:
+				print(self.end)
+				self.end -= 1
 	
 	def game_over(self,winner,looser):
 		self.game_on = False
 		App.get_running_app().game_over(winner)
 
 	def _do_gravity(self,obj):
+		if obj.exploded:
+			return
 		dist_x = self.sun.center_x - obj.center_x
 		dist_y = self.sun.center_y - obj.center_y
 		distance = ((dist_x)**2 + (dist_y)**2)**(0.5)

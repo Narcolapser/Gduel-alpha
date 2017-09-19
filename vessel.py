@@ -10,6 +10,7 @@ from kivy.clock import Clock
 from kivy.config import Config
 import math
 import joystick
+import random
 
 import kivy
 kivy.require('1.9.0')
@@ -29,6 +30,7 @@ class Vessel(Widget):
 	next_dot = 0
 	dot_spacing = 2
 	dot_limit = 120
+	exploded = False
 	
 	def __init__(self,px,py,vx,vy,color):
 		super(Vessel,self).__init__()
@@ -42,6 +44,8 @@ class Vessel(Widget):
 		if self.next_dot < self.dot_spacing:
 			self.next_dot += 1
 			return
+		if self.exploded:
+			return
 		self.next_dot = 0
 		if len(self.trail) > self.dot_limit:
 			self.parent.remove_widget(self.trail.pop(0))
@@ -52,11 +56,30 @@ class Vessel(Widget):
 		self.trail.append(dot)
 		self.parent.add_widget(dot)
 
+	def explode(self):
+		self.exploded = True
+		try:
+			for i in range(10):
+				vx = self.vx * random.random() * 5
+				vy = self.vy * random.random() * 5
+				x = self.px + math.cos(math.radians(self.angle)) * self.launch_multiplyer * 5
+				y = self.py + math.sin(math.radians(self.angle)) * self.launch_multiplyer * 5
+				debris = Debris(x,y,vx,vy,self.color)
+				self.parent.add_widget(debris)
+				self.parent.debris.append(debris)
+			self.parent.remove_widget(self)
+		except:
+			print("Already exploded!")
+		
+
 class TrailDot(Widget):
 	color = ListProperty([1,1,1])
 	pass
 
 class Torpedo(Vessel):
+	pass
+
+class Debris(Vessel):
 	pass
 
 class Ship(Vessel):
