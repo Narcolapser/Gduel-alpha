@@ -9,12 +9,14 @@ from kivy.uix.settings import SettingsWithSidebar
 from kivy.app import App
 from kivy.properties import NumericProperty, ListProperty, StringProperty
 from kivy.clock import Clock
+from kivy import utils
 import math
 import joystick
 import json
 from os.path import join
 from vessel import *
 from game import *
+from android.runnable import run_on_ui_thread
 
 import kivy
 kivy.require('1.9.0')
@@ -32,6 +34,22 @@ class GameScreen(Screen):
 		print("Name: " + app.get_application_name() + " Icon: " + app.get_application_icon())
 		self.game.set_torpedo_limit(app.config.getint('Duel','torpedo_count'))
 		Clock.schedule_interval(game.update,1/60.0)
+		if utils.platform == 'android':
+			HideButtons()
+
+@run_on_ui_thread
+def HideButtons():
+	from jnius import autoclass
+	activity = autoclass('org.kivy.android.PythonActivity').mActivity
+	View = autoclass('android.view.View')
+	decorView = activity.getWindow().getDecorView()
+	flags = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY \
+			| View.SYSTEM_UI_FLAG_FULLSCREEN \
+			| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN \
+			| View.SYSTEM_UI_FLAG_LAYOUT_STABLE \
+			| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION \
+			| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+	decorView.setSystemUiVisibility(flags)
 
 class VictoryScreen(Screen):
 	def __init__(self,winner=None,**kwargs):
